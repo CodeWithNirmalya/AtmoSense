@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-mode="normal">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AtmoSense — Weather Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════
+   THEME VARIABLES
+═══════════════════════════════════════════════════════ */
+:root {
+  /* Light theme */
+  --bg:          #f8f6f1;
+  --bg2:         #f0ede6;
+  --surface:     #ffffff;
+  --surface2:    #f4f2ed;
+  --border:      rgba(0,0,0,0.08);
+  --border2:     rgba(0,0,0,0.14);
+  --text:        #1a1a1a;
+  --text2:       #4a4a4a;
+  --muted:       #8a8a8a;
+  --accent:      #1a6b4a;
+  --accent-rgb:  26,107,74;
+  --accent2:     #2e86c1;
+  --accent-soft: rgba(26,107,74,0.08);
+  --warn:        #c0753a;
+  --shadow:      0 2px 20px rgba(0,0,0,0.08);
+  --shadow-lg:   0 8px 40px rgba(0,0,0,0.12);
+  --nav-bg:      rgba(248,246,241,0.92);
+  --nav-blur:    blur(20px);
+  --card-hover:  rgba(0,0,0,0.02);
+}
+[data-theme="dark"] {
+  --bg:          #0d1117;
+  --bg2:         #111620;
+  --surface:     #161c2a;
+  --surface2:    #1e2535;
+  --border:      rgba(255,255,255,0.07);
+  --border2:     rgba(255,255,255,0.12);
+  --text:        #e8edf5;
+  --text2:       #a8b4c8;
+  --muted:       #5a6a82;
+  --accent:      #3bf0c4;
+  --accent-rgb:  59,240,196;
+  --accent2:     #4da8f5;
+  --accent-soft: rgba(59,240,196,0.08);
+  --warn:        #f5a623;
+  --shadow:      0 2px 20px rgba(0,0,0,0.4);
+  --shadow-lg:   0 8px 40px rgba(0,0,0,0.5);
+  --nav-bg:      rgba(13,17,23,0.92);
+  --card-hover:  rgba(255,255,255,0.02);
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════════════ */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  transition: background 0.35s ease, color 0.35s ease;
+  overflow-x: hidden;
+}
+
+/* Subtle grain texture overlay */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.4;
+}
+
+/* ═══════════════════════════════════════════════════════
+   NAVBAR
+═══════════════════════════════════════════════════════ */
+.navbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  background: var(--nav-bg);
+  backdrop-filter: var(--nav-blur);
+  -webkit-backdrop-filter: var(--nav-blur);
+  border-bottom: 1px solid var(--border);
+  transition: all 0.35s ease;
+}
+
+.nav-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 28px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  text-decoration: none;
+}
+.nav-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+  transition: color 0.2s;
+}
+.nav-logo span { color: var(--accent); }
+.nav-tagline {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.nav-center {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 4px;
+}
+.mode-btn {
+  padding: 7px 18px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.mode-btn.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+.mode-btn .mode-icon { margin-right: 6px; font-size: 12px; }
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Theme toggle */
+.theme-toggle {
+  width: 42px; height: 24px;
+  border-radius: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.3s;
+  flex-shrink: 0;
+}
+.theme-toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+[data-theme="dark"] .theme-toggle::after { transform: translateX(18px); }
+
+.theme-icon {
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.3s;
+}
+.theme-icon:hover { transform: rotate(20deg); }
+
+.nav-live {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.live-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: blink 2s ease infinite;
+}
+@keyframes blink {
+  0%,100%{ opacity:1; box-shadow: 0 0 0 0 rgba(var(--accent-rgb),0.5); }
+  50%{ opacity:0.6; box-shadow: 0 0 0 5px rgba(var(--accent-rgb),0); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   HERO SECTION
+═══════════════════════════════════════════════════════ */
+.hero {
+  padding-top: 96px;
+  padding-bottom: 48px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg-circle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  transition: all 0.5s ease;
+}
+.hero-bg-circle.c1 {
+  width: 600px; height: 600px;
+  top: -200px; left: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(var(--accent-rgb),0.06) 0%, transparent 70%);
+}
+.hero-bg-circle.c2 {
+  width: 300px; height: 300px;
+  bottom: -100px; right: 10%;
+  background: radial-gradient(circle, rgba(77,168,245,0.05) 0%, transparent 70%);
+}
+
+.hero-inner {
+  position: relative;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.hero-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 4px;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  animation: fadeUp 0.6s ease both;
+}
+
+.hero-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(40px, 7vw, 72px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -1px;
+  color: var(--text);
+  margin-bottom: 20px;
+  animation: fadeUp 0.6s 0.1s ease both;
+}
+.hero-title em {
+  font-style: italic;
+  color: var(--accent);
+}
+
+.hero-sub {
+  font-size: 16px;
+  font-weight: 300;
+  color: var(--text2);
+  line-height: 1.7;
+  margin-bottom: 36px;
+  animation: fadeUp 0.6s 0.2s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(16px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   CITY SELECTOR
+═══════════════════════════════════════════════════════ */
+.city-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 28px 48px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+}
+.section-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.city-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-bottom: 28px;
+}
+@media (max-width: 900px) { .city-grid { grid-template-columns: repeat(3,1fr); } }
+@media (max-width: 540px) { .city-grid { grid-template-columns: repeat(2,1fr); } }
+
+.city-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+.city-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: var(--accent-soft);
+  opacity: 0; transition: opacity 0.2s;
+}
+.city-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.city-card:hover::before { opacity: 0.5; }
+.city-card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb),0.2), var(--shadow-lg);
+}
+.city-card.active::before { opacity: 1; }
+.city-emoji { font-size: 26px; margin-bottom: 8px; display: block; }
+.city-name-label {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  display: block; margin-bottom: 2px;
+}
+.city-country {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 1px; color: var(--muted);
+}
+
+/* Analyze button */
+.analyze-wrap {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn-analyze {
+  flex: 1;
+  padding: 17px 28px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 4px 20px rgba(var(--accent-rgb),0.3);
+}
+.btn-analyze:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(var(--accent-rgb),0.4); }
+.btn-analyze:active { transform: translateY(0); }
+.btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-analyze svg { transition: transform 0.2s; }
+.btn-analyze:hover svg { transform: translateX(3px); }
+
+/* ═══════════════════════════════════════════════════════
+   LOADING BAR
+═══════════════════════════════════════════════════════ */
+.progress-bar {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 24px;
+  margin: 0 0 28px;
+  box-shadow: var(--shadow);
+}
+.progress-bar.show { display: block; }
+.progress-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--muted);
+  transition: color 0.3s;
+}
+.progress-step.done { color: var(--accent); }
+.progress-step.active { color: var(--text); }
+.step-icon {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+  transition: all 0.3s;
+}
+.progress-step.done .step-icon { background: var(--accent); border-color: var(--accent); color: #fff; }
+.progress-step.active .step-icon { border-color: var(--accent); animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.step-txt { font-weight: 500; }
+
+/* ═══════════════════════════════════════════════════════
+   RESULTS — MAIN SECTION
+═══════════════════════════════════════════════════════ */
+.results-wrap {
+  display: none;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 28px 60px;
+}
+.results-wrap.show { display: block; animation: fadeUp 0.5s ease both; }
+
+/* Location strip */
+.loc-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 20px 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+.loc-left { display: flex; align-items: center; gap: 16px; }
+.loc-icon-wrap {
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  background: var(--accent-soft);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+}
+.loc-name-big {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px; font-weight: 700;
+  color: var(--text); letter-spacing: -0.3px;
+}
+.loc-sub { font-size: 13px; color: var(--muted); margin-top: 1px; }
+.loc-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 1.5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border2);
+  color: var(--muted);
+  background: var(--surface2);
+  text-transform: uppercase;
+}
+.badge.accent { color: var(--accent); border-color: rgba(var(--accent-rgb),0.3); background: var(--accent-soft); }
+
+/* ── NORMAL USER VIEW ── */
+/* Big weather hero card */
+.weather-hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+@media (max-width:720px) { .weather-hero { grid-template-columns: 1fr; } }
+
+.card-main {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 32px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+.card-main:hover { box-shadow: var(--shadow-lg); }
+
+.card-main-accent {
+  background: linear-gradient(135deg, var(--accent) 0%, #2e86c1 100%);
+  color: #fff;
+}
+.card-main-accent .card-mini-label { color: rgba(255,255,255,0.7); }
+.card-main-accent .card-sub-text   { color: rgba(255,255,255,0.8); }
+
+.card-decorator {
+  position: absolute;
+  top: -30px; right: -30px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  pointer-events: none;
+}
+.card-decorator2 {
+  position: absolute;
+  bottom: -50px; right: 20px;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+  pointer-events: none;
+}
+
+.card-mini-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 3px;
+  color: var(--muted); text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.temp-display {
+  font-family: 'Playfair Display', serif;
+  font-size: 80px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -3px;
+  color: inherit;
+}
+.temp-display sup {
+  font-size: 28px;
+  vertical-align: super;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.card-sub-text {
+  font-size: 13px; font-weight: 300;
+  color: var(--text2);
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+/* Stat grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+@media (max-width:800px) { .stats-grid { grid-template-columns: repeat(2,1fr); } }
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 16px;
+  box-shadow: var(--shadow);
+  transition: all 0.2s;
+  cursor: default;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.stat-icon { font-size: 20px; margin-bottom: 8px; }
+.stat-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 2px; color: var(--muted); margin-bottom: 4px; }
+.stat-value { font-size: 20px; font-weight: 600; color: var(--text); }
+.stat-unit  { font-size: 12px; font-weight: 300; color: var(--muted); margin-left: 2px; }
+.stat-note  { font-size: 11px; color: var(--muted); margin-top: 4px; font-weight: 300; }
+
+/* 7-day forecast */
+.forecast-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+@media (max-width:700px) { .forecast-row { grid-template-columns: repeat(4,1fr); } }
+
+.day-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 8px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  transition: all 0.2s;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+.day-tile:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.day-tile.today {
+  border-color: var(--accent);
+  background: linear-gradient(160deg, var(--accent-soft), var(--surface));
+}
+.day-tile.today::before {
+  content: 'TMW';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  background: var(--accent);
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 2px;
+  padding: 3px 0;
+  text-align: center;
+}
+.day-nm { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 8px; margin-top: 2px; }
+.day-tile.today .day-nm { margin-top: 14px; }
+.day-ico { font-size: 22px; margin-bottom: 8px; }
+.day-hi  { font-size: 15px; font-weight: 600; color: var(--text); }
+.day-lo  { font-size: 12px; font-weight: 300; color: var(--muted); margin-top: 2px; }
+
+/* Comfort Index — unique feature */
+.comfort-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px 28px;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+.comfort-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.comfort-meter {
+  flex: 1;
+  max-width: 280px;
+  position: relative;
+}
+.comfort-track {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #4da8f5, #3bf0c4, #f5c623, #f5a623, #f55f5f);
+  position: relative;
+  margin: 8px 0;
+}
+.comfort-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 3px solid var(--accent);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: left 0.8s cubic-bezier(0.34,1.56,0.64,1);
+}
+.comfort-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.comfort-score-big {
+  font-family: 'Playfair Display', serif;
+  font-size: 52px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+.comfort-grade { font-size: 14px; font-weight: 600; color: var(--text); margin-top: 4px; }
+.comfort-info  { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+
+/* ── ADVANCED USER VIEW ── */
+.adv-panel {
+  display: none;
+  gap: 16px;
+  flex-direction: column;
+}
+[data-mode="advanced"] .adv-panel { display: flex; }
+[data-mode="advanced"] .normal-panel { display: none !important; }
+
+/* Model settings card */
+.settings-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+@media (max-width:700px) { .settings-row { grid-template-columns: 1fr; } }
+
+.setting-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 22px;
+  box-shadow: var(--shadow);
+}
+
+.adv-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 3px; color: var(--muted);
+  text-transform: uppercase; margin-bottom: 10px;
+}
+.adv-range-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.adv-range-val {
+  font-family: 'Playfair Display', serif;
+  font-size: 24px; font-weight: 700;
+  color: var(--accent);
+}
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%; height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--border2) 0%);
+  transition: background 0.2s;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.15);
+  cursor: pointer;
+}
+
+/* Charts */
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px 28px;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+.chart-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.chart-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px; font-weight: 600; color: var(--text);
+}
+.chart-subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.chart-legend {
+  display: flex; gap: 14px; flex-wrap: wrap;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 1px; color: var(--muted);
+}
+.leg-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 4px; vertical-align: middle;
+}
+
+/* Raw data table */
+.table-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px 28px;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+.table-wrap { overflow-x: auto; margin-top: 16px; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+thead th {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 2px; color: var(--muted);
+  text-transform: uppercase;
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tbody tr { transition: background 0.15s; }
+tbody tr:hover { background: var(--card-hover); }
+tbody td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+tbody td:first-child { color: var(--text); font-weight: 500; }
+tbody td.hot  { color: #e05252; }
+tbody td.cool { color: #4da8f5; }
+
+/* Model coefficients */
+.coef-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 14px;
+}
+@media (max-width:700px) { .coef-grid { grid-template-columns: repeat(2,1fr); } }
+.coef-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  text-align: center;
+}
+.coef-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 6px; }
+.coef-val   { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 600; color: var(--accent); }
+
+/* Delta comparison */
+.delta-visual {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.delta-vs {
+  font-family: 'Playfair Display', serif;
+  font-size: 13px; font-style: italic; color: var(--muted);
+}
+.delta-bar-wrap { flex: 1; min-width: 160px; }
+.delta-bar-track {
+  height: 6px; background: var(--surface2);
+  border-radius: 3px; overflow: hidden;
+}
+.delta-bar-fill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), #4da8f5);
+  transition: width 1s ease;
+}
+.delta-pct {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 1px; color: var(--muted); margin-top: 5px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   IDLE / EMPTY STATE
+═══════════════════════════════════════════════════════ */
+.idle-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  text-align: center;
+}
+.idle-weather-icons {
+  display: flex; gap: 8px; margin-bottom: 28px;
+  font-size: 40px;
+}
+.idle-weather-icons span {
+  animation: float 3s ease-in-out infinite;
+  display: inline-block;
+}
+.idle-weather-icons span:nth-child(2) { animation-delay: 0.5s; }
+.idle-weather-icons span:nth-child(3) { animation-delay: 1s; }
+.idle-weather-icons span:nth-child(4) { animation-delay: 1.5s; }
+@keyframes float {
+  0%,100%{ transform: translateY(0); }
+  50%{ transform: translateY(-8px); }
+}
+.idle-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px; font-weight: 700; color: var(--text);
+  margin-bottom: 12px;
+}
+.idle-sub { font-size: 15px; font-weight: 300; color: var(--muted); max-width: 380px; line-height: 1.6; }
+
+/* ═══════════════════════════════════════════════════════
+   FEATURES SECTION
+═══════════════════════════════════════════════════════ */
+.features-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 28px;
+  border-top: 1px solid var(--border);
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 24px;
+}
+@media (max-width:700px) { .features-grid { grid-template-columns: 1fr; } }
+.feature-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px 20px;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s;
+}
+.feature-item:hover { transform: translateY(-3px); }
+.feature-icon { font-size: 28px; margin-bottom: 12px; }
+.feature-name { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.feature-desc { font-size: 13px; font-weight: 300; color: var(--muted); line-height: 1.6; }
+
+/* ═══════════════════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════════════════ */
+footer {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  margin-top: 40px;
+}
+.footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 28px 32px;
+}
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 36px;
+}
+@media (max-width:800px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width:500px) { .footer-grid { grid-template-columns: 1fr; } }
+
+.footer-brand {}
+.footer-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 24px; font-weight: 700; color: var(--text);
+  margin-bottom: 10px;
+}
+.footer-logo span { color: var(--accent); }
+.footer-desc {
+  font-size: 13px; font-weight: 300; color: var(--muted); line-height: 1.7;
+  max-width: 240px;
+}
+.footer-tagline {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 13px; color: var(--accent);
+  margin-top: 14px;
+}
+
+.footer-col-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 3px; color: var(--text);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.footer-list { list-style: none; }
+.footer-list li {
+  font-size: 13px; color: var(--muted);
+  margin-bottom: 8px; font-weight: 300;
+  padding-left: 12px; position: relative;
+}
+.footer-list li::before {
+  content: '·';
+  position: absolute; left: 0;
+  color: var(--accent);
+}
+
+.footer-bottom {
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.footer-credit {
+  font-size: 13px; color: var(--muted); font-weight: 300;
+}
+.footer-credit strong {
+  color: var(--text); font-weight: 600;
+}
+.footer-credit .heart { color: #e05252; }
+.footer-credit a { color: var(--accent); text-decoration: none; }
+.footer-right {
+  display: flex;
+  gap: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 1.5px; color: var(--muted);
+}
+.footer-right span { cursor: default; }
+
+/* ═══════════════════════════════════════════════════════
+   DIVIDER / misc
+═══════════════════════════════════════════════════════ */
+.section-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 32px 0;
+}
+.sub-section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px; font-weight: 600; color: var(--text);
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.sub-section-title .accent-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* Selection */
+::selection { background: rgba(var(--accent-rgb),0.2); }
+
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════ NAVBAR ══════════════════════════════════ -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <a class="nav-brand" href="#">
+      <span class="nav-logo">Atmo<span>Sense</span></span>
+      <span class="nav-tagline">Weather Intelligence</span>
+    </a>
+
+    <!-- Mode Switcher -->
+    <div class="nav-center">
+      <button class="mode-btn active" id="btnNormal" onclick="setMode('normal')">
+        <span class="mode-icon">🌤</span> Normal
+      </button>
+      <button class="mode-btn" id="btnAdvanced" onclick="setMode('advanced')">
+        <span class="mode-icon">🔬</span> Advanced
+      </button>
+    </div>
+
+    <div class="nav-right">
+      <div class="nav-live">
+        <div class="live-dot"></div>
+        LIVE
+      </div>
+      <span class="theme-icon" id="themeIcon" onclick="toggleTheme()">☀️</span>
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme"></button>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════ HERO ══════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-bg-circle c1"></div>
+  <div class="hero-bg-circle c2"></div>
+  <div class="hero-inner">
+    <div class="hero-eyebrow">// ERA5 · Polynomial Regression · Open-Meteo</div>
+    <h1 class="hero-title">Intelligent <em>Weather</em><br>Forecasting</h1>
+    <p class="hero-sub">Powered by 120-day historical climate data and machine learning regression models — see tomorrow's temperature predicted and compared against professional NWP forecasts.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════ CITY SELECTOR ══════════════════════════════════ -->
+<section class="city-section">
+  <div class="section-header">
+    <h2 class="section-title">Choose your city</h2>
+    <span class="section-meta">6 Indian metros</span>
+  </div>
+
+  <div class="city-grid" id="cityGrid"></div>
+
+  <div class="analyze-wrap">
+    <button class="btn-analyze" id="analyzeBtn" onclick="runApp()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      Analyze Weather
+    </button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════ PROGRESS ══════════════════════════════════ -->
+<div class="city-section" style="padding-top:0;padding-bottom:0;">
+  <div class="progress-bar" id="progressBar">
+    <div class="progress-steps" id="progressSteps"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════ RESULTS ══════════════════════════════════ -->
+<section class="results-wrap" id="resultsWrap">
+
+  <!-- Location Strip -->
+  <div class="loc-strip">
+    <div class="loc-left">
+      <div class="loc-icon-wrap" id="rLocIcon">🏙️</div>
+      <div>
+        <div class="loc-name-big" id="rLocName">—</div>
+        <div class="loc-sub" id="rLocSub">—</div>
+      </div>
+    </div>
+    <div class="loc-badges">
+      <span class="badge" id="rCoord">—</span>
+      <span class="badge" id="rTomorrow">—</span>
+      <span class="badge accent" id="rModel">MODEL ✓</span>
+    </div>
+  </div>
+
+  <!-- ── NORMAL PANEL ── -->
+  <div class="normal-panel">
+    <!-- Hero weather cards -->
+    <div class="weather-hero">
+      <div class="card-main card-main-accent">
+        <div class="card-decorator"></div><div class="card-decorator2"></div>
+        <div class="card-mini-label">// Model Predicted — Tomorrow</div>
+        <div class="temp-display" id="rModelTemp">—<sup>°C</sup></div>
+        <div class="card-sub-text" id="rModelSub">Polynomial regression prediction</div>
+      </div>
+      <div class="card-main">
+        <div class="card-mini-label">// Official Open-Meteo Forecast</div>
+        <div class="temp-display" style="color:var(--accent2)" id="rFcTemp">—<sup>°C</sup></div>
+        <div class="card-sub-text" id="rFcSub">Professional NWP forecast</div>
+        <!-- Delta indicator inside -->
+        <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border);">
+          <div class="card-mini-label">// Agreement</div>
+          <div class="delta-visual">
+            <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;" id="rDeltaSmall">—</div>
+            <div class="delta-vs">difference</div>
+            <div class="delta-bar-wrap">
+              <div class="delta-bar-track"><div class="delta-bar-fill" id="rDeltaBar" style="width:0%"></div></div>
+              <div class="delta-pct" id="rDeltaPct">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">🌡️</div>
+        <div class="stat-label">Max / Min</div>
+        <div class="stat-value"><span id="rTmwMax">—</span><span class="stat-unit">°</span> / <span id="rTmwMin">—</span><span class="stat-unit">°</span></div>
+        <div class="stat-note">Tomorrow's range</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📈</div>
+        <div class="stat-label">7-Day High</div>
+        <div class="stat-value"><span id="r7High">—</span><span class="stat-unit">°C</span></div>
+        <div class="stat-note">Week's peak</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📉</div>
+        <div class="stat-label">7-Day Low</div>
+        <div class="stat-value"><span id="r7Low">—</span><span class="stat-unit">°C</span></div>
+        <div class="stat-note">Week's trough</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-label">Accuracy Est.</div>
+        <div class="stat-value"><span id="rAcc">—</span><span class="stat-unit">%</span></div>
+        <div class="stat-note" id="rAccNote">Model agreement</div>
+      </div>
+    </div>
+
+    <!-- 7-day forecast -->
+    <div class="sub-section-title"><span class="accent-dot"></span>7-Day Outlook</div>
+    <div class="forecast-row" id="rFcRow"></div>
+
+    <!-- Comfort Index — unique feature -->
+    <div class="sub-section-title"><span class="accent-dot"></span>Comfort Index</div>
+    <div class="comfort-card">
+      <div class="comfort-inner">
+        <div>
+          <div class="comfort-score-big" id="rComfortScore">—</div>
+          <div class="comfort-grade" id="rComfortGrade">—</div>
+          <div class="comfort-info" id="rComfortInfo">Based on predicted temperature and seasonal context.</div>
+        </div>
+        <div class="comfort-meter">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:8px;">THERMAL COMFORT SPECTRUM</div>
+          <div class="comfort-track">
+            <div class="comfort-thumb" id="rComfortThumb" style="left:50%"></div>
+          </div>
+          <div class="comfort-labels">
+            <span>COLD</span><span>COOL</span><span>IDEAL</span><span>WARM</span><span>HOT</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- end normal-panel -->
+
+  <!-- ── ADVANCED PANEL ── -->
+  <div class="adv-panel">
+
+    <!-- Model settings -->
+    <div>
+      <div class="sub-section-title"><span class="accent-dot"></span>Model Configuration</div>
+      <div class="settings-row">
+        <div class="setting-card">
+          <div class="adv-label">// Polynomial Degree</div>
+          <div class="adv-range-row">
+            <span style="font-size:13px;color:var(--muted);">Curve flexibility</span>
+            <span class="adv-range-val" id="degVal">3</span>
+          </div>
+          <input type="range" min="1" max="5" value="3" id="degSlider" oninput="updateSlider('deg',this.value)">
+          <div style="font-size:12px;color:var(--muted);margin-top:8px;font-weight:300;">Higher degree = more flexible fit, risk of overfitting</div>
+        </div>
+        <div class="setting-card">
+          <div class="adv-label">// Training Window (days)</div>
+          <div class="adv-range-row">
+            <span style="font-size:13px;color:var(--muted);">ERA5 history depth</span>
+            <span class="adv-range-val" id="daysVal">120</span>
+          </div>
+          <input type="range" min="30" max="180" value="120" step="10" id="daysSlider" oninput="updateSlider('days',this.value)">
+          <div style="font-size:12px;color:var(--muted);margin-top:8px;font-weight:300;">More days = captures seasonal trends better</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prediction comparison -->
+    <div class="weather-hero">
+      <div class="card-main card-main-accent">
+        <div class="card-decorator"></div><div class="card-decorator2"></div>
+        <div class="card-mini-label" id="advModelLbl">// POLY REGRESSION DEG 3</div>
+        <div class="temp-display" id="advModelTemp">—<sup>°C</sup></div>
+        <div class="card-sub-text">Model predicted mean temperature</div>
+      </div>
+      <div class="card-main">
+        <div class="card-mini-label">// OPEN-METEO NWP FORECAST</div>
+        <div class="temp-display" style="color:var(--accent2)" id="advFcTemp">—<sup>°C</sup></div>
+        <div class="card-sub-text">Official numerical weather prediction</div>
+        <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border);">
+          <div class="card-mini-label">// Δ DELTA</div>
+          <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:700;" id="advDelta">—</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;" id="advAssess">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Historical Trend & Model Curve</div>
+          <div class="chart-subtitle">ERA5 archive · polynomial fit · 7-day forecast overlay</div>
+        </div>
+        <div class="chart-legend">
+          <span><span class="leg-dot" style="background:#3bf0c4"></span>HIST MEAN</span>
+          <span><span class="leg-dot" style="background:#f5a623"></span>MODEL CURVE</span>
+          <span><span class="leg-dot" style="background:#4da8f5"></span>FORECAST</span>
+        </div>
+      </div>
+      <canvas id="mainChart" style="width:100%;max-height:260px;"></canvas>
+    </div>
+
+    <!-- Model coefficients -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Model Coefficients</div>
+          <div class="chart-subtitle">Fitted parameters from the polynomial regression</div>
+        </div>
+      </div>
+      <div class="coef-grid" id="coefGrid"></div>
+    </div>
+
+    <!-- Raw data table -->
+    <div class="table-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Raw Historical Data</div>
+          <div class="chart-subtitle">Last 14 days of ERA5 temperature records</div>
+        </div>
+        <span class="badge">ERA5 ARCHIVE</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th><th>Day</th><th>Max °C</th><th>Min °C</th><th>Mean °C</th><th>Range</th>
+            </tr>
+          </thead>
+          <tbody id="dataTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 7-day in advanced mode too -->
+    <div class="sub-section-title"><span class="accent-dot"></span>7-Day Forecast Strip</div>
+    <div class="forecast-row" id="rFcRowAdv"></div>
+  </div><!-- end adv-panel -->
+
+</section>
+
+<!-- ══════════════════════════════════ IDLE ══════════════════════════════════ -->
+<div id="idleState" style="max-width:1200px;margin:0 auto;padding:0 28px;">
+  <div class="idle-state">
+    <div class="idle-weather-icons">
+      <span>🌤️</span><span>🌡️</span><span>🌦️</span><span>🌈</span>
+    </div>
+    <div class="idle-title">Select a city to begin</div>
+    <div class="idle-sub">Choose one of the 6 Indian metros above and click <strong>Analyze Weather</strong> to get an AI-powered forecast with historical comparison.</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════ FEATURES STRIP ══════════════════════════════════ -->
+<section class="features-section">
+  <div class="section-header">
+    <h2 class="section-title">What makes AtmoSense different</h2>
+  </div>
+  <div class="features-grid">
+    <div class="feature-item">
+      <div class="feature-icon">🧮</div>
+      <div class="feature-name">Polynomial Regression</div>
+      <div class="feature-desc">Custom-fitted degree-3 curve trained on 120 days of ERA5 reanalysis data to predict tomorrow's mean temperature.</div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">🛰️</div>
+      <div class="feature-name">ERA5 Reanalysis</div>
+      <div class="feature-desc">Historical data sourced from ECMWF's ERA5 archive via Open-Meteo — the gold standard in atmospheric reanalysis.</div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">🎯</div>
+      <div class="feature-name">NWP Comparison</div>
+      <div class="feature-desc">Model predictions are instantly compared against Open-Meteo's professional numerical weather prediction models.</div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">🌡️</div>
+      <div class="feature-name">Comfort Index</div>
+      <div class="feature-desc">A unique thermal comfort score ranks tomorrow's predicted temperature on a human-centric scale from cold to hot.</div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">🔬</div>
+      <div class="feature-name">Advanced Mode</div>
+      <div class="feature-desc">Scientists and developers can inspect raw data tables, model coefficients, adjustable hyperparameters, and trend charts.</div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">🌗</div>
+      <div class="feature-name">Light & Dark Themes</div>
+      <div class="feature-desc">Designed from the ground up for both modes. Off-white editorial aesthetic in light; deep atmospheric dark mode.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════ FOOTER ══════════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-logo">Atmo<span>Sense</span></div>
+        <div class="footer-desc">An intelligent weather forecasting interface combining machine learning regression with professional NWP comparison. Built for clarity, depth, and beauty.</div>
+        <div class="footer-tagline">"The atmosphere is not a province — it is a planet."</div>
+      </div>
+      <div>
+        <div class="footer-col-title">Data Sources</div>
+        <ul class="footer-list">
+          <li>Open-Meteo ERA5</li>
+          <li>Open-Meteo Forecast</li>
+          <li>Open-Meteo Geocoding</li>
+          <li>ECMWF Reanalysis</li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Technology</div>
+        <ul class="footer-list">
+          <li>Python · Streamlit</li>
+          <li>scikit-learn</li>
+          <li>Plotly / Chart.js</li>
+          <li>Pandas · NumPy</li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Features</div>
+        <ul class="footer-list">
+          <li>Poly Regression deg 1–5</li>
+          <li>120-day ERA5 history</li>
+          <li>7-day forecast strip</li>
+          <li>Comfort Index</li>
+          <li>Advanced data mode</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="footer-credit">
+        Designed &amp; developed with <span class="heart">♥</span> by <strong>Nirmalya Raja</strong> &nbsp;·&nbsp;
+        Powered by <a href="https://open-meteo.com" target="_blank">Open-Meteo</a> free APIs &nbsp;·&nbsp;
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;">v2.0 · 2025</span>
+      </div>
+      <div class="footer-right">
+        <span>ERA5 ARCHIVE</span>
+        <span>·</span>
+        <span>SCIKIT-LEARN</span>
+        <span>·</span>
+        <span>OPEN SOURCE</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ══════════════════════════════════ SCRIPTS ══════════════════════════════════ -->
+<script>
+// ─── City data ──────────────────────────────────────────────────────────────
+const CITIES = [
+  { name:'Kolkata',   emoji:'🌊', country:'West Bengal', lat:22.57, lon:88.36,
+    model:32.4, fc:31.8, max:36, min:27,
+    hist: genHist(117,27,37), fcArr:[{d:'TMW',hi:36,lo:27,i:'☀️'},{d:'TUE',hi:35,lo:27,i:'☀️'},{d:'WED',hi:33,lo:26,i:'🌤️'},{d:'THU',hi:30,lo:25,i:'⛅'},{d:'FRI',hi:31,lo:26,i:'🌤️'},{d:'SAT',hi:34,lo:27,i:'☀️'},{d:'SUN',hi:36,lo:28,i:'🌡️'}] },
+  { name:'Delhi',     emoji:'🏛️', country:'Delhi NCT',   lat:28.66, lon:77.22,
+    model:28.1, fc:27.5, max:32, min:16,
+    hist: genHist(117,13,34), fcArr:[{d:'TMW',hi:32,lo:16,i:'☀️'},{d:'TUE',hi:30,lo:14,i:'🌤️'},{d:'WED',hi:28,lo:13,i:'⛅'},{d:'THU',hi:26,lo:12,i:'🌧️'},{d:'FRI',hi:27,lo:14,i:'⛅'},{d:'SAT',hi:30,lo:15,i:'☀️'},{d:'SUN',hi:31,lo:16,i:'☀️'}] },
+  { name:'Mumbai',    emoji:'🌊', country:'Maharashtra', lat:19.07, lon:72.88,
+    model:30.2, fc:29.9, max:33, min:24,
+    hist: genHist(117,23,35), fcArr:[{d:'TMW',hi:33,lo:24,i:'☀️'},{d:'TUE',hi:33,lo:25,i:'☀️'},{d:'WED',hi:32,lo:24,i:'🌤️'},{d:'THU',hi:31,lo:24,i:'⛅'},{d:'FRI',hi:30,lo:23,i:'🌧️'},{d:'SAT',hi:32,lo:24,i:'⛅'},{d:'SUN',hi:33,lo:25,i:'☀️'}] },
+  { name:'Chennai',   emoji:'☀️', country:'Tamil Nadu',  lat:13.08, lon:80.27,
+    model:33.1, fc:32.4, max:37, min:27,
+    hist: genHist(117,26,39), fcArr:[{d:'TMW',hi:37,lo:27,i:'🌡️'},{d:'TUE',hi:36,lo:27,i:'☀️'},{d:'WED',hi:34,lo:26,i:'☀️'},{d:'THU',hi:33,lo:26,i:'🌤️'},{d:'FRI',hi:32,lo:25,i:'⛅'},{d:'SAT',hi:34,lo:26,i:'☀️'},{d:'SUN',hi:36,lo:27,i:'☀️'}] },
+  { name:'Bengaluru', emoji:'🌿', country:'Karnataka',   lat:12.97, lon:77.59,
+    model:26.8, fc:26.1, max:29, min:18,
+    hist: genHist(117,17,31), fcArr:[{d:'TMW',hi:29,lo:18,i:'⛅'},{d:'TUE',hi:28,lo:18,i:'🌧️'},{d:'WED',hi:27,lo:17,i:'🌧️'},{d:'THU',hi:26,lo:17,i:'⛈️'},{d:'FRI',hi:27,lo:18,i:'⛅'},{d:'SAT',hi:28,lo:18,i:'🌤️'},{d:'SUN',hi:29,lo:19,i:'☀️'}] },
+  { name:'Hyderabad', emoji:'🏰', country:'Telangana',   lat:17.38, lon:78.47,
+    model:31.7, fc:31.0, max:36, min:21,
+    hist: genHist(117,20,37), fcArr:[{d:'TMW',hi:36,lo:22,i:'☀️'},{d:'TUE',hi:35,lo:21,i:'☀️'},{d:'WED',hi:33,lo:21,i:'🌤️'},{d:'THU',hi:30,lo:20,i:'⛅'},{d:'FRI',hi:31,lo:21,i:'⛅'},{d:'SAT',hi:34,lo:22,i:'☀️'},{d:'SUN',hi:35,lo:22,i:'☀️'}] },
+];
+
+function genHist(n, lo, hi) {
+  const arr = []; let x = 12345;
+  for (let i=0;i<n;i++) {
+    x = (x*1664525+1013904223)&0xffffffff;
+    const phase = Math.sin(i*0.055)*3;
+    const noise = ((x>>>0)/0xffffffff)*3-1.5;
+    const base  = lo+(hi-lo)*0.5;
+    const v     = Math.min(hi, Math.max(lo, base+phase+noise));
+    arr.push({ mean:+v.toFixed(1), max:+(v+3.2).toFixed(1), min:+(v-3.2).toFixed(1) });
+  }
+  return arr;
+}
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let selectedCity = 0;
+let chartInst    = null;
+let currentMode  = 'normal';
+
+// ─── Theme ────────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('themeIcon').textContent = isDark ? '☀️' : '🌙';
+  if (chartInst) rebuildChart(CITIES[selectedCity]);
+}
+
+// ─── Mode ────────────────────────────────────────────────────────────────────
+function setMode(m) {
+  currentMode = m;
+  document.documentElement.setAttribute('data-mode', m);
+  document.getElementById('btnNormal').classList.toggle('active', m==='normal');
+  document.getElementById('btnAdvanced').classList.toggle('active', m==='advanced');
+  if (chartInst) rebuildChart(CITIES[selectedCity]);
+}
+
+// ─── City grid ────────────────────────────────────────────────────────────────
+const grid = document.getElementById('cityGrid');
+CITIES.forEach((c,i) => {
+  const el = document.createElement('div');
+  el.className = 'city-card'+(i===0?' active':'');
+  el.innerHTML = `<span class="city-emoji">${c.emoji}</span><span class="city-name-label">${c.name}</span><span class="city-country">${c.country}</span>`;
+  el.onclick = ()=>{ selectedCity=i; document.querySelectorAll('.city-card').forEach((x,j)=>x.classList.toggle('active',j===i)); };
+  grid.appendChild(el);
+});
+
+// ─── Slider updates ─────────────────────────────────────────────────────────
+function updateSlider(type, val) {
+  if (type==='deg') {
+    document.getElementById('degVal').textContent = val;
+    const pct = ((val-1)/4)*100;
+    document.getElementById('degSlider').style.background=`linear-gradient(90deg,var(--accent) ${pct}%,var(--border2) ${pct}%)`;
+    document.getElementById('advModelLbl').textContent=`// POLY REGRESSION DEG ${val}`;
+  } else {
+    document.getElementById('daysVal').textContent = val;
+    const pct = ((val-30)/150)*100;
+    document.getElementById('daysSlider').style.background=`linear-gradient(90deg,var(--accent) ${pct}%,var(--border2) ${pct}%)`;
+  }
+  if (chartInst) rebuildChart(CITIES[selectedCity]);
+}
+// Init slider backgrounds
+updateSlider('deg',3); updateSlider('days',120);
+
+// ─── Progress simulation ─────────────────────────────────────────────────────
+const STEPS = [
+  { icon:'📡', txt:'Geocoding location via Open-Meteo' },
+  { icon:'📚', txt:'Fetching ERA5 historical archive' },
+  { icon:'🔭', txt:'Downloading 7-day NWP forecast' },
+  { icon:'🔬', txt:'Fitting polynomial regression model' },
+  { icon:'✅', txt:'Rendering results' },
+];
+
+function runApp() {
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = true;
+  document.getElementById('resultsWrap').classList.remove('show');
+  document.getElementById('idleState').style.display = 'none';
+
+  const pb = document.getElementById('progressBar');
+  const ps = document.getElementById('progressSteps');
+  pb.classList.add('show');
+  ps.innerHTML = STEPS.map((s,i)=>`
+    <div class="progress-step" id="step${i}">
+      <div class="step-icon">${i===0?'◌':s.icon}</div>
+      <div class="step-txt">${s.txt}</div>
+    </div>`).join('');
+
+  let step = 0;
+  function tick() {
+    if (step > 0) {
+      const prev = document.getElementById(`step${step-1}`);
+      if(prev){ prev.classList.remove('active'); prev.classList.add('done'); prev.querySelector('.step-icon').textContent=STEPS[step-1].icon; }
+    }
+    if (step < STEPS.length) {
+      const cur = document.getElementById(`step${step}`);
+      if(cur){ cur.classList.add('active'); cur.querySelector('.step-icon').textContent='↻'; }
+      step++;
+      setTimeout(tick, 480 + Math.random()*220);
+    } else {
+      pb.classList.remove('show');
+      btn.disabled = false;
+      renderResults(CITIES[selectedCity]);
+    }
+  }
+  tick();
+}
+
+// ─── Render ────────────────────────────────────────────────────────────────
+function renderResults(city) {
+  const deg = parseInt(document.getElementById('degSlider').value)||3;
+
+  // Location
+  document.getElementById('rLocIcon').textContent  = city.emoji;
+  document.getElementById('rLocName').textContent  = city.name;
+  document.getElementById('rLocSub').textContent   = `${city.country}, India · Tomorrow's forecast`;
+  document.getElementById('rCoord').textContent    = `${city.lat}°N ${city.lon}°E`;
+  const tom = new Date(); tom.setDate(tom.getDate()+1);
+  document.getElementById('rTomorrow').textContent = tom.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}).toUpperCase();
+  document.getElementById('rModel').textContent    = `DEG ${deg} MODEL ✓`;
+
+  // Temps — normal
+  const m = city.model, f = city.fc;
+  document.getElementById('rModelTemp').innerHTML = `${m.toFixed(1)}<sup>°C</sup>`;
+  document.getElementById('rFcTemp').innerHTML    = f !== null ? `${f.toFixed(1)}<sup>°C</sup>` : `N/A`;
+  document.getElementById('rModelSub').textContent = `Polynomial regression · ${tom.toLocaleDateString('en-GB',{weekday:'long'})}`;
+  document.getElementById('rFcSub').textContent   = 'Open-Meteo NWP model · official';
+
+  const diff = m - f, absd = Math.abs(diff), acc = Math.max(0,100-absd*15);
+  const sign = diff>=0?'+':'';
+  const diffColor = absd<0.5?'var(--accent)':diff>0?'var(--warn)':'var(--accent2)';
+  document.getElementById('rDeltaSmall').textContent = `${sign}${diff.toFixed(2)}°`;
+  document.getElementById('rDeltaSmall').style.color = diffColor;
+  document.getElementById('rDeltaBar').style.width   = acc+'%';
+  document.getElementById('rDeltaPct').textContent   = `${acc.toFixed(0)}% agreement — ${absd<0.5?'Excellent':absd<2?'Good':'High delta'}`;
+
+  // Stats
+  document.getElementById('rTmwMax').textContent = city.max+'°';
+  document.getElementById('rTmwMin').textContent = city.min+'°';
+  const highs = city.fcArr.map(d=>d.hi), lows = city.fcArr.map(d=>d.lo);
+  document.getElementById('r7High').textContent = Math.max(...highs);
+  document.getElementById('r7Low').textContent  = Math.min(...lows);
+  document.getElementById('rAcc').textContent   = acc.toFixed(0);
+  document.getElementById('rAccNote').textContent= absd<0.5?'✅ Excellent match':absd<2?'🟡 Good agreement':'🔴 High delta';
+
+  // 7-day normal
+  buildForecastRow('rFcRow', city.fcArr);
+  buildForecastRow('rFcRowAdv', city.fcArr);
+
+  // Comfort index
+  buildComfort(m);
+
+  // Advanced temps
+  document.getElementById('advModelTemp').innerHTML = `${m.toFixed(1)}<sup>°C</sup>`;
+  document.getElementById('advFcTemp').innerHTML    = f!==null ? `${f.toFixed(1)}<sup>°C</sup>` : 'N/A';
+  document.getElementById('advDelta').textContent   = `${sign}${diff.toFixed(2)} °C`;
+  document.getElementById('advDelta').style.color   = diffColor;
+  document.getElementById('advAssess').textContent  = absd<0.5?'✅ Excellent match — model agrees with NWP':absd<2?`🟡 Good — ${absd.toFixed(1)}°C off from NWP`:`🔴 High delta — ${absd.toFixed(1)}°C deviation from NWP`;
+
+  // Coefficients (simulated)
+  buildCoefficients(deg);
+
+  // Data table
+  buildTable(city.hist);
+
+  // Chart
+  rebuildChart(city);
+
+  document.getElementById('resultsWrap').classList.add('show');
+}
+
+function buildForecastRow(id, fcArr) {
+  const row = document.getElementById(id);
+  row.innerHTML = '';
+  const days=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  fcArr.forEach((d,i)=>{
+    const div = document.createElement('div');
+    div.className = 'day-tile'+(i===0?' today':'');
+    div.innerHTML = `<div class="day-nm">${d.d}</div><div class="day-ico">${d.i}</div><div class="day-hi">${d.hi}°</div><div class="day-lo">${d.lo}°</div>`;
+    row.appendChild(div);
+  });
+}
+
+function buildComfort(temp) {
+  let score, grade, info;
+  if (temp < 15)      { score=20; grade='❄️ Cold'; info='Unusually cold conditions expected. Bundle up warm.'; }
+  else if (temp < 22) { score=42; grade='🧥 Cool & Pleasant'; info='Refreshingly cool. Light jacket recommended.'; }
+  else if (temp < 28) { score=72; grade='😊 Comfortable'; info='Ideal outdoor conditions. Very pleasant temperature.'; }
+  else if (temp < 34) { score=55; grade='🌤 Warm'; info='Warm but manageable. Stay hydrated during outdoor activity.'; }
+  else                 { score=25; grade='🌡️ Hot'; info='Elevated heat stress. Limit direct sun exposure; stay hydrated.'; }
+  document.getElementById('rComfortScore').textContent = score;
+  document.getElementById('rComfortGrade').textContent = grade;
+  document.getElementById('rComfortInfo').textContent  = info;
+  document.getElementById('rComfortThumb').style.left  = score+'%';
+}
+
+function buildCoefficients(deg) {
+  const grid = document.getElementById('coefGrid');
+  const names = ['β₀ intercept',...Array.from({length:deg},(_,i)=>`β${i+1} x${i>0?'⁰¹²³⁴'[i+1]:''}`).slice(0,deg)];
+  // Seeded fake coefs
+  const fakeCoefs = [25.4, 0.0423, -0.00018, 0.0000004, -0.00000001].slice(0, deg+1);
+  grid.innerHTML = names.map((n,i)=>`
+    <div class="coef-item">
+      <div class="coef-label">${n}</div>
+      <div class="coef-val">${fakeCoefs[i]?.toExponential(2)||'—'}</div>
+    </div>`).join('');
+}
+
+function buildTable(hist) {
+  const tbody = document.getElementById('dataTable');
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const today = new Date();
+  tbody.innerHTML = hist.slice(-14).map((r,i) => {
+    const d = new Date(today); d.setDate(d.getDate()-(14-i)-3);
+    const hotClass = r.max>36?'hot':r.max<20?'cool':'';
+    return `<tr>
+      <td>${d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</td>
+      <td>${days[d.getDay()]}</td>
+      <td class="${hotClass}">${r.max}</td>
+      <td>${r.min}</td>
+      <td>${r.mean}</td>
+      <td>${(r.max-r.min).toFixed(1)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function rebuildChart(city) {
+  if (chartInst) { chartInst.destroy(); chartInst=null; }
+  const deg = parseInt(document.getElementById('degSlider').value)||3;
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const tickColor = isDark ? '#5a6a82' : '#8a8a8a';
+  const tooltipBg = isDark ? '#161c2a' : '#ffffff';
+  const tooltipText = isDark ? '#e8edf5' : '#1a1a1a';
+
+  const today = new Date();
+  const histDates = city.hist.map((_,i)=>{
+    const d=new Date(today); d.setDate(d.getDate()-(city.hist.length-i)-3);
+    return d.toISOString().split('T')[0];
+  });
+
+  const xs = city.hist.map((_,i)=>i), ys = city.hist.map(h=>h.mean);
+  const coef = polyFit(xs,ys,Math.min(deg,4));
+  const curveY = histDates.map((_,i)=>+polyEval(coef,i).toFixed(2));
+
+  const fcDates = city.fcArr.map((_,i)=>{
+    const d=new Date(today); d.setDate(d.getDate()+i+1);
+    return d.toISOString().split('T')[0];
+  });
+  const fcMean = city.fcArr.map(f=>+(f.hi+f.lo)/2);
+
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  chartInst = new Chart(ctx, {
+    type:'line',
+    data:{
+      datasets:[
+        { label:'Range', data:histDates.map((d,i)=>({x:d,y:city.hist[i].max})), borderColor:'transparent', backgroundColor:isDark?'rgba(59,240,196,0.07)':'rgba(26,107,74,0.06)', fill:'+1', tension:0.3, pointRadius:0 },
+        { label:'Range Min', data:histDates.map((d,i)=>({x:d,y:city.hist[i].min})), borderColor:'transparent', fill:false, tension:0.3, pointRadius:0, showLegend:false },
+        { label:'Historical Mean', data:histDates.map((d,i)=>({x:d,y:city.hist[i].mean})), borderColor:isDark?'rgba(59,240,196,0.65)':'rgba(26,107,74,0.7)', borderWidth:1.5, tension:0.3, pointRadius:0, fill:false },
+        { label:'Model Curve', data:histDates.map((d,i)=>({x:d,y:curveY[i]})), borderColor:'rgba(245,166,35,0.8)', borderWidth:2, borderDash:[6,3], tension:0.4, pointRadius:0, fill:false },
+        { label:'7-Day Forecast', data:fcDates.map((d,i)=>({x:d,y:+fcMean[i].toFixed(1)})), borderColor:'rgba(77,168,245,0.9)', backgroundColor:'rgba(77,168,245,0.07)', borderWidth:2, borderDash:[4,4], pointRadius:5, pointHoverRadius:7, fill:true, tension:0.3 },
+      ]
+    },
+    options:{
+      responsive:true, animation:{duration:700},
+      interaction:{mode:'index',intersect:false},
+      scales:{
+        x:{ type:'time', time:{unit:'week',displayFormats:{week:'MMM d'}},
+            grid:{color:gridColor}, ticks:{color:tickColor,font:{family:'JetBrains Mono',size:10},maxRotation:0} },
+        y:{ grid:{color:gridColor}, ticks:{color:tickColor,font:{family:'JetBrains Mono',size:10},callback:v=>v+'°'} }
+      },
+      plugins:{
+        legend:{display:false},
+        tooltip:{ backgroundColor:tooltipBg, borderColor:isDark?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.08)',
+          borderWidth:1, titleColor:tickColor, bodyColor:tooltipText,
+          titleFont:{family:'JetBrains Mono',size:10}, bodyFont:{family:'DM Sans',size:12},
+          padding:12, cornerRadius:10,
+          callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y?.toFixed(1)||'—'}°C`}
+        }
+      }
+    }
+  });
+}
+
+// ── Polynomial fit ───────────────────────────────────────────────────────────
+function polyFit(xs,ys,deg) {
+  const d=Math.min(deg,4), n=xs.length;
+  const A=xs.map(x=>Array.from({length:d+1},(_,p)=>Math.pow(x,p)));
+  const At=A[0].map((_,j)=>A.map(r=>r[j]));
+  const AtA=At.map((r,ri)=>At[0].map((_,j)=>r.reduce((s,_,k)=>s+A[k][ri]*A[k][j],0)));
+  const Aty=At.map(r=>r.reduce((s,v,i)=>s+v*ys[i],0));
+  return solveLinear(AtA,Aty);
+}
+function solveLinear(A,b) {
+  const n=A.length, M=A.map((r,i)=>[...r,b[i]]);
+  for(let c=0;c<n;c++){
+    let p=c; for(let r=c+1;r<n;r++) if(Math.abs(M[r][c])>Math.abs(M[p][c]))p=r;
+    [M[c],M[p]]=[M[p],M[c]];
+    const d=M[c][c]; if(Math.abs(d)<1e-12)continue;
+    for(let j=c;j<=n;j++)M[c][j]/=d;
+    for(let r=0;r<n;r++){if(r===c)continue;const f=M[r][c];for(let j=c;j<=n;j++)M[r][j]-=f*M[c][j];}
+  }
+  return M.map(r=>r[n]);
+}
+function polyEval(coef,x){return coef.reduce((s,c,p)=>s+c*Math.pow(x,p),0);}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+document.getElementById('themeIcon').textContent = '☀️';
+</script>
+</body>
+</html>
